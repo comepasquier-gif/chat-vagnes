@@ -16,7 +16,6 @@ body {
   display:flex;
   flex-direction:column;
 }
-
 header, footer {
   padding:10px;
   background: rgba(11,18,32,0.8);
@@ -24,7 +23,6 @@ header, footer {
   align-items:center;
   gap:8px;
 }
-
 main {
   flex:1;
   overflow:auto;
@@ -33,23 +31,17 @@ main {
   border-top:2px solid #0ea5a4;
   border-bottom:2px solid #0ea5a4;
 }
-
 input, button {
   padding:8px;
   border-radius:6px;
   border:none;
 }
-
-input {
-  flex:1;
-}
-
+input { flex:1; }
 button {
   background:#0ea5a4;
   color:#022;
   cursor:pointer;
 }
-
 .msg{
   padding:6px 10px;
   border-radius:8px;
@@ -57,7 +49,6 @@ button {
   max-width:70%;
   display:inline-block;
 }
-
 .mine{background:#0ea5a4;color:#022;margin-left:auto;}
 .other{background:#1e293b;}
 .meta{font-size:11px;color:#94a3b8;margin-top:3px;}
@@ -88,18 +79,16 @@ img.avatar {
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
 
 <script>
-// 🔹 Configuration Firebase
+// Configuration Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyDP-H6X01nM42PGb1Wym7RCaWrsugrL5vA",
   authDomain: "minichat-fc8fc.firebaseapp.com",
-  databaseURL: "https://minichat-fc8fc-default-rtdb.firebaseio.com",
+  databaseURL: "https://minichat-fc8fc-default-rtdb.europe-west1.firebasedatabase.app/",
   projectId: "minichat-fc8fc",
   storageBucket: "minichat-fc8fc.firebasestorage.app",
   messagingSenderId: "614755534085",
   appId: "1:614755534085:web:3dd7799d11f5991c69236c"
 };
-
-// Initialisation
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
@@ -108,7 +97,6 @@ const nickEl = document.getElementById("nick");
 const inputMsg = document.getElementById("inputMsg");
 const sendBtn = document.getElementById("sendBtn");
 
-// Envoyer un message
 function sendMessage(){
   const text = inputMsg.value.trim();
   if(!text) return;
@@ -123,10 +111,10 @@ function sendMessage(){
     alert("Erreur d’envoi : " + err.message);
   });
 }
+
 sendBtn.onclick = sendMessage;
 inputMsg.addEventListener("keydown", e => { if(e.key==="Enter") sendMessage() });
 
-// Affichage des messages en direct
 db.ref("messages").on("child_added", snap => {
   const m = snap.val();
   const div = document.createElement("div");
