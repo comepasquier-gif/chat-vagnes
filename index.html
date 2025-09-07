@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Chat Firebase</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0ea5a4">
+<style>
+body {margin:0;font-family:Arial, sans-serif;background:#0f172a;color:#e6eef6;height:100vh;display:flex;flex-direction:column;}
+header,footer {padding:10px;background:#0b1220;display:flex;align-items:center;gap:8px;}
+main {flex:1;overflow:auto;padding:10px;}
+input,button {padding:8px;border-radius:6px;border:none;}
+input {flex:1;}
+button {background:#0ea5a4;color:#022;cursor:pointer;}
+.msg{padding:6px 10px;border-radius:8px;margin:4px 0;max-width:70%;}
+.mine{background:#0ea5a4;color:#022;margin-left:auto;}
+.other{background:#1e293b;}
+.meta{font-size:11px;color:#94a3b8;margin-top:3px;}
+</style>
+</head>
+<body>
+<header>
+  <input id="nick" type="text" placeholder="Pseudo" value="User">
+</header>
+
+<main id="messages"></main>
+
+<footer>
+  <input id="inputMsg" type="text" placeholder="Ton message...">
+  <button id="sendBtn">Envoyer</button>
+</footer>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
+
+<script>
+// 🔹 Configuration Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyDP-H6X01nM42PGb1Wym7RCaWrsugrL5vA",
+  authDomain: "minichat-fc8fc.firebaseapp.com",
+  databaseURL: "https://minichat-fc8fc-default-rtdb.firebaseio.com",
+  projectId: "minichat-fc8fc",
+  storageBucket: "minichat-fc8fc.firebasestorage.app",
+  messagingSenderId: "614755534085",
+  appId: "1:614755534085:web:3dd7799d11f5991c69236c"
+};
+
+// Initialisation
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+const msgEl = document.getElementById("messages");
+const nickEl = document.getElementById("nick");
+const inputMsg = document.getElementById("inputMsg");
+const sendBtn = document.getElementById("sendBtn");
+
+// Envoi d'un message
+function sendMessage(){
+  const text=inputMsg.value.trim();
+  if(!text) return;
+  const nick=nickEl.value||"Anonyme";
+  db.ref("messages").push({
+    nick,
+    text,
+    t: Date.now()
+  });
+  inputMsg.value="";
+}
+sendBtn.onclick=sendMessage;
+inputMsg.addEventListener("keydown", e=>{ if(e.key==="Enter") sendMessage() });
+
+// Réception des messages en direct
+db.ref("messages").on("child_added", snap=>{
+  const m=snap.val();
+  const div=document.createElement("div");
+  const me = (m.nick===nickEl.value);
+  div.className="msg "+(me?"mine":"other");
+  div.innerHTML = `<div>${m.nick}: ${m.text}</div><div class="meta">${new Date(m.t).toLocaleTimeString()}</div>`;
+  msgEl.appendChild(div);
+  msgEl.scrollTop=msgEl.scrollHeight;
+});
+</script>
+</body>
+</html>
