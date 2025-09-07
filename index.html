@@ -14,7 +14,27 @@ body {
   color:#fff;
   height:100vh;
   display:flex;
+  justify-content:center;
+  align-items:center;
+}
+#login, #chat {
+  display:none;
   flex-direction:column;
+  width:100%;
+  max-width:500px;
+  height:100%;
+  background:rgba(0,0,0,0.5);
+}
+#login {
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:10px;
+}
+#login input, #login button {
+  padding:10px;
+  border:none;
+  border-radius:6px;
 }
 header, footer {
   padding:10px;
@@ -52,13 +72,6 @@ button {
 .mine{background:#0ea5a4;color:#022;margin-left:auto;}
 .other{background:#1e293b;}
 .meta{font-size:11px;color:#94a3b8;margin-top:3px;}
-img.avatar {
-  width:24px;
-  height:24px;
-  border-radius:50%;
-  vertical-align:middle;
-  margin-right:6px;
-}
 .adminTag {
   background:#facc15;
   color:#222;
@@ -70,17 +83,31 @@ img.avatar {
 </style>
 </head>
 <body>
-<header>
-  <img class="avatar" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="avatar">
-  <input id="nick" type="text" placeholder="Pseudo" value="User">
-</header>
 
-<main id="messages"></main>
+<!-- 🔹 Login screen -->
+<div id="login">
+  <div style="text-align:center">
+    <h2>🔒 Connexion au chat</h2>
+    <p>Entre ton code d'accès :</p>
+    <input id="codeInput" type="text" placeholder="Code">
+    <button onclick="checkCode()">Entrer</button>
+    <p id="loginError" style="color:red;"></p>
+  </div>
+</div>
 
-<footer>
-  <input id="inputMsg" type="text" placeholder="Ton message...">
-  <button id="sendBtn">Envoyer</button>
-</footer>
+<!-- 🔹 Chat screen -->
+<div id="chat">
+  <header>
+    <input id="nick" type="text" placeholder="Pseudo" value="User">
+  </header>
+
+  <main id="messages"></main>
+
+  <footer>
+    <input id="inputMsg" type="text" placeholder="Ton message...">
+    <button id="sendBtn">Envoyer</button>
+  </footer>
+</div>
 
 <!-- ✅ Firebase SDK en compat -->
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
@@ -98,23 +125,46 @@ const firebaseConfig = {
   appId: "1:614755534085:web:3dd7799d11f5991c69236c"
 };
 
-// ✅ Initialisation
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
+
+const loginEl = document.getElementById("login");
+const chatEl = document.getElementById("chat");
+const codeInput = document.getElementById("codeInput");
+const loginError = document.getElementById("loginError");
 
 const msgEl = document.getElementById("messages");
 const nickEl = document.getElementById("nick");
 const inputMsg = document.getElementById("inputMsg");
 const sendBtn = document.getElementById("sendBtn");
 
-let isAdmin = false; // état admin
+let isAdmin = false;
+let loggedIn = false;
 
-// 🔹 Envoyer un message
+// 🔹 Vérifier le code utilisateur
+function checkCode(){
+  const code = codeInput.value.trim();
+  if(!code) return;
+
+  db.ref("codes/" + code).once("value").then(snap=>{
+    if(snap.exists()){
+      loggedIn = true;
+      loginEl.style.display = "none";
+      chatEl.style.display = "flex";
+      startChat();
+    } else {
+      loginError.innerText = "⛔ Code invalide";
+    }
+  });
+}
+
+// 🔹 Envoi de message
 function sendMessage(){
+  if(!loggedIn) return;
   const text = inputMsg.value.trim();
   if(!text) return;
 
-  // --- Vérification des commandes ---
+  // Commandes admin
   if(text === "/code adminlesang"){
     isAdmin = true;
     alert("✅ Tu es maintenant ADMIN !");
@@ -122,50 +172,61 @@ function sendMessage(){
     return;
   }
 
-  if(text === "/clear"){
+  if(text.startsWith("/new user ")){
     if(isAdmin){
-      db.ref("messages").remove().then(()=>{
-        msgEl.innerHTML = "";
-        alert("🧹 Tous les messages ont été effacés !");
-      });
-    }else{
-      alert("⛔ Seul un admin peut utiliser cette commande !");
+      const newCode = text.split(" ")[2];
+      if(newCode){
+        db.ref("codes/"+newCode).set(true).then(()=>{
+          alert("🔑 Nouveau code créé: "+newCode);
+        });
+      }
+    } else {
+      alert("⛔ Seul un admin peut créer des codes !");
     }
     inputMsg.value="";
     return;
   }
 
-  // --- Envoi normal ---
+  if(text === "/clear"){
+    if(isAdmin){
+      db.ref("messages").remove();
+      msgEl.innerHTML = "";
+      alert("🧹 Messages supprimés !");
+    } else {
+      alert("⛔ Seul un admin peut vider le chat !");
+    }
+    inputMsg.value="";
+    return;
+  }
+
+  // Envoi normal
   const nick = nickEl.value || "Anonyme";
   db.ref("messages").push({
     nick,
     text,
     admin: isAdmin,
     t: Date.now()
-  }).then(()=>{
-    inputMsg.value="";
-  }).catch(err=>{
-    alert("Erreur d’envoi : " + err.message);
   });
+  inputMsg.value="";
 }
 
 sendBtn.onclick = sendMessage;
 inputMsg.addEventListener("keydown", e => { if(e.key==="Enter") sendMessage() });
 
-// 🔹 Écouter les nouveaux messages
-db.ref("messages").on("child_added", snap => {
-  const m = snap.val();
-  const div = document.createElement("div");
-  const me = (m.nick === nickEl.value);
-  div.className = "msg " + (me ? "mine" : "other");
-
-  let adminTag = m.admin ? `<span class="adminTag">[Admin]</span>` : "";
-  div.innerHTML = `<img class="avatar" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png"> 
-                   <strong>${m.nick}${adminTag}:</strong> ${m.text}
-                   <div class="meta">${new Date(m.t).toLocaleTimeString()}</div>`;
-  msgEl.appendChild(div);
-  msgEl.scrollTop = msgEl.scrollHeight;
-});
+// 🔹 Lancement du chat (écoute des messages)
+function startChat(){
+  db.ref("messages").on("child_added", snap => {
+    const m = snap.val();
+    const div = document.createElement("div");
+    const me = (m.nick === nickEl.value);
+    div.className = "msg " + (me ? "mine" : "other");
+    let adminTag = m.admin ? `<span class="adminTag">[Admin]</span>` : "";
+    div.innerHTML = `<strong>${m.nick}${adminTag}:</strong> ${m.text}
+                     <div class="meta">${new Date(m.t).toLocaleTimeString()}</div>`;
+    msgEl.appendChild(div);
+    msgEl.scrollTop = msgEl.scrollHeight;
+  });
+}
 </script>
 </body>
 </html>
