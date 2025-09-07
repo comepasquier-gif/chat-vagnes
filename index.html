@@ -53,8 +53,8 @@ button {
 .other{background:#1e293b;}
 .meta{font-size:11px;color:#94a3b8;margin-top:3px;}
 img.avatar {
-  width:32px;
-  height:32px;
+  width:24px;
+  height:24px;
   border-radius:50%;
   vertical-align:middle;
   margin-right:6px;
@@ -74,12 +74,12 @@ img.avatar {
   <button id="sendBtn">Envoyer</button>
 </footer>
 
-<!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
+<!-- ✅ Firebase SDK en compat -->
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
 
 <script>
-// Configuration Firebase
+// 🔹 Config Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyDP-H6X01nM42PGb1Wym7RCaWrsugrL5vA",
   authDomain: "minichat-fc8fc.firebaseapp.com",
@@ -89,6 +89,8 @@ const firebaseConfig = {
   messagingSenderId: "614755534085",
   appId: "1:614755534085:web:3dd7799d11f5991c69236c"
 };
+
+// ✅ Initialisation
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
@@ -97,6 +99,7 @@ const nickEl = document.getElementById("nick");
 const inputMsg = document.getElementById("inputMsg");
 const sendBtn = document.getElementById("sendBtn");
 
+// 🔹 Envoyer un message
 function sendMessage(){
   const text = inputMsg.value.trim();
   if(!text) return;
@@ -115,12 +118,15 @@ function sendMessage(){
 sendBtn.onclick = sendMessage;
 inputMsg.addEventListener("keydown", e => { if(e.key==="Enter") sendMessage() });
 
+// 🔹 Écouter les nouveaux messages
 db.ref("messages").on("child_added", snap => {
   const m = snap.val();
   const div = document.createElement("div");
   const me = (m.nick === nickEl.value);
   div.className = "msg " + (me ? "mine" : "other");
-  div.innerHTML = `<img class="avatar" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="avatar"> <strong>${m.nick}:</strong> ${m.text}<div class="meta">${new Date(m.t).toLocaleTimeString()}</div>`;
+  div.innerHTML = `<img class="avatar" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png"> 
+                   <strong>${m.nick}:</strong> ${m.text}
+                   <div class="meta">${new Date(m.t).toLocaleTimeString()}</div>`;
   msgEl.appendChild(div);
   msgEl.scrollTop = msgEl.scrollHeight;
 });
