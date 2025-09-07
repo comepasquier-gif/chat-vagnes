@@ -59,6 +59,14 @@ img.avatar {
   vertical-align:middle;
   margin-right:6px;
 }
+.adminTag {
+  background:#facc15;
+  color:#222;
+  padding:2px 4px;
+  border-radius:4px;
+  font-size:11px;
+  margin-left:4px;
+}
 </style>
 </head>
 <body>
@@ -99,14 +107,40 @@ const nickEl = document.getElementById("nick");
 const inputMsg = document.getElementById("inputMsg");
 const sendBtn = document.getElementById("sendBtn");
 
+let isAdmin = false; // état admin
+
 // 🔹 Envoyer un message
 function sendMessage(){
   const text = inputMsg.value.trim();
   if(!text) return;
+
+  // --- Vérification des commandes ---
+  if(text === "/code adminlesang"){
+    isAdmin = true;
+    alert("✅ Tu es maintenant ADMIN !");
+    inputMsg.value="";
+    return;
+  }
+
+  if(text === "/clear"){
+    if(isAdmin){
+      db.ref("messages").remove().then(()=>{
+        msgEl.innerHTML = "";
+        alert("🧹 Tous les messages ont été effacés !");
+      });
+    }else{
+      alert("⛔ Seul un admin peut utiliser cette commande !");
+    }
+    inputMsg.value="";
+    return;
+  }
+
+  // --- Envoi normal ---
   const nick = nickEl.value || "Anonyme";
   db.ref("messages").push({
     nick,
     text,
+    admin: isAdmin,
     t: Date.now()
   }).then(()=>{
     inputMsg.value="";
@@ -124,8 +158,10 @@ db.ref("messages").on("child_added", snap => {
   const div = document.createElement("div");
   const me = (m.nick === nickEl.value);
   div.className = "msg " + (me ? "mine" : "other");
+
+  let adminTag = m.admin ? `<span class="adminTag">[Admin]</span>` : "";
   div.innerHTML = `<img class="avatar" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png"> 
-                   <strong>${m.nick}:</strong> ${m.text}
+                   <strong>${m.nick}${adminTag}:</strong> ${m.text}
                    <div class="meta">${new Date(m.t).toLocaleTimeString()}</div>`;
   msgEl.appendChild(div);
   msgEl.scrollTop = msgEl.scrollHeight;
