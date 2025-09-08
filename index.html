@@ -3,15 +3,13 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Chat Chavagnes</title>
-<meta name="theme-color" content="#0ea5a4">
+<title>Mini WhatsApp</title>
+<meta name="theme-color" content="#25D366">
 <style>
 body {
   margin:0;
   font-family: 'Arial', sans-serif;
-  background: url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT5_2q9CKo6j52ret7quZBcpcC7tCxn7zNdfw&s') no-repeat center center fixed;
-  background-size: cover;
-  color:#fff;
+  background:#ece5dd;
   height:100vh;
   display:flex;
   justify-content:center;
@@ -21,9 +19,10 @@ body {
   display:none;
   flex-direction:column;
   width:100%;
-  max-width:500px;
+  max-width:600px;
   height:100%;
-  background:rgba(0,0,0,0.5);
+  background:#fff;
+  border:1px solid #ccc;
 }
 #login {
   display:flex;
@@ -36,58 +35,65 @@ body {
   border:none;
   border-radius:6px;
 }
-header, footer {
+header {
   padding:10px;
-  background: rgba(11,18,32,0.8);
-  display:flex;
-  align-items:center;
-  gap:8px;
+  background:#075E54;
+  color:#fff;
+  font-weight:bold;
+  text-align:center;
 }
 main {
   flex:1;
   overflow:auto;
   padding:10px;
-  background: rgba(0,0,0,0.2);
-  border-top:2px solid #0ea5a4;
-  border-bottom:2px solid #0ea5a4;
+  background:#e5ddd5;
+  display:flex;
+  flex-direction:column;
+}
+footer {
+  display:flex;
+  gap:5px;
+  padding:8px;
+  background:#f0f0f0;
 }
 input, button {
   padding:8px;
-  border-radius:6px;
+  border-radius:20px;
   border:none;
 }
-input { flex:1; }
+input { flex:1; padding-left:15px;}
 button {
-  background:#0ea5a4;
-  color:#022;
+  background:#25D366;
+  color:#fff;
   cursor:pointer;
 }
 .msg{
-  padding:6px 10px;
-  border-radius:8px;
-  margin:4px 0;
+  padding:10px 14px;
+  border-radius:18px;
+  margin:6px 0;
   max-width:70%;
-  display:inline-block;
+  font-size:14px;
+  position:relative;
 }
-.mine{background:#0ea5a4;color:#022;margin-left:auto;}
-.other{background:#1e293b;}
-.meta{font-size:11px;color:#94a3b8;margin-top:3px;}
+.mine{background:#dcf8c6; align-self:flex-end;}
+.other{background:#fff; align-self:flex-start;}
+.meta{font-size:11px;color:#555;margin-top:3px;text-align:right;}
 .adminTag {
-  background:#facc15;
-  color:#222;
-  padding:2px 4px;
-  border-radius:4px;
-  font-size:11px;
-  margin-left:4px;
+  background:#FFD700;
+  color:#000;
+  padding:2px 6px;
+  border-radius:8px;
+  font-size:10px;
+  margin-left:5px;
 }
 </style>
 </head>
 <body>
 
-<!-- 🔹 Login screen -->
+<!-- 🔹 Login -->
 <div id="login">
   <div style="text-align:center">
-    <h2>🔒 Connexion au chat</h2>
+    <h2>🔒 Connexion</h2>
     <p>Entre ton code d'accès :</p>
     <input id="codeInput" type="text" placeholder="Code">
     <button onclick="checkCode()">Entrer</button>
@@ -95,21 +101,18 @@ button {
   </div>
 </div>
 
-<!-- 🔹 Chat screen -->
+<!-- 🔹 Chat -->
 <div id="chat">
-  <header>
-    <input id="nick" type="text" placeholder="Pseudo" value="User">
-  </header>
-
+  <header>💬 Mini WhatsApp</header>
   <main id="messages"></main>
-
   <footer>
+    <input id="nick" type="text" placeholder="Pseudo" value="User">
     <input id="inputMsg" type="text" placeholder="Ton message...">
-    <button id="sendBtn">Envoyer</button>
+    <button id="sendBtn">➤</button>
   </footer>
 </div>
 
-<!-- ✅ Firebase SDK en compat -->
+<!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
 
@@ -128,15 +131,6 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// Ajoute un code de base "0000" si aucun n'existe
-db.ref("codes/0000").once("value").then(snap=>{
-  if(!snap.exists()){
-    db.ref("codes/0000").set(true);
-    console.log("✅ Code de base '0000' ajouté !");
-  }
-});
-
-
 const loginEl = document.getElementById("login");
 const chatEl = document.getElementById("chat");
 const codeInput = document.getElementById("codeInput");
@@ -150,11 +144,17 @@ const sendBtn = document.getElementById("sendBtn");
 let isAdmin = false;
 let loggedIn = false;
 
+// ✅ Ajouter un code de base "0000"
+db.ref("codes/0000").once("value").then(snap=>{
+  if(!snap.exists()){
+    db.ref("codes/0000").set(true);
+  }
+});
+
 // 🔹 Vérifier le code utilisateur
 function checkCode(){
   const code = codeInput.value.trim();
   if(!code) return;
-
   db.ref("codes/" + code).once("value").then(snap=>{
     if(snap.exists()){
       loggedIn = true;
@@ -215,23 +215,37 @@ function sendMessage(){
     text,
     admin: isAdmin,
     t: Date.now()
+  }).then(()=>{
+
+    // ✅ Garder seulement les 10 derniers
+    db.ref("messages").once("value").then(snap=>{
+      const messages = snap.val();
+      if(messages){
+        const keys = Object.keys(messages);
+        if(keys.length > 10){
+          const toDelete = keys.slice(0, keys.length - 10);
+          toDelete.forEach(k => db.ref("messages/"+k).remove());
+        }
+      }
+    });
+
+    inputMsg.value="";
   });
-  inputMsg.value="";
 }
 
 sendBtn.onclick = sendMessage;
 inputMsg.addEventListener("keydown", e => { if(e.key==="Enter") sendMessage() });
 
-// 🔹 Lancement du chat (écoute des messages)
+// 🔹 Lecture des messages
 function startChat(){
   db.ref("messages").on("child_added", snap => {
     const m = snap.val();
     const div = document.createElement("div");
     const me = (m.nick === nickEl.value);
     div.className = "msg " + (me ? "mine" : "other");
-    let adminTag = m.admin ? `<span class="adminTag">[Admin]</span>` : "";
-    div.innerHTML = `<strong>${m.nick}${adminTag}:</strong> ${m.text}
-                     <div class="meta">${new Date(m.t).toLocaleTimeString()}</div>`;
+    let adminTag = m.admin ? `<span class="adminTag">Admin</span>` : "";
+    div.innerHTML = `${m.text}
+                     <div class="meta">${m.nick} ${adminTag} • ${new Date(m.t).toLocaleTimeString()}</div>`;
     msgEl.appendChild(div);
     msgEl.scrollTop = msgEl.scrollHeight;
   });
