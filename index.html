@@ -77,6 +77,7 @@ button {
 }
 .mine{background:#dcf8c6; align-self:flex-end;}
 .other{background:#fff; align-self:flex-start;}
+.system{background:#ffeeba; align-self:center; font-size:12px;}
 .meta{font-size:11px;color:#555;margin-top:3px;text-align:right;}
 .adminTag {
   background:#FFD700;
@@ -142,7 +143,17 @@ const inputMsg = document.getElementById("inputMsg");
 const sendBtn = document.getElementById("sendBtn");
 
 let isAdmin = false;
+let isMegaAdmin = false;
 let loggedIn = false;
+
+// 🔹 Liste des commandes
+const commands = [
+  { cmd: "/code adminlesang", role: "user", desc: "Devenir admin" },
+  { cmd: "/new user <code>", role: "admin", desc: "Créer un nouveau code d'accès" },
+  { cmd: "/clear", role: "admin", desc: "Supprimer tous les messages" },
+  { cmd: "/recup", role: "user", desc: "Devenir méga-admin" },
+  { cmd: "/help", role: "user", desc: "Afficher les commandes disponibles" }
+];
 
 // ✅ Ajouter un code de base "0000"
 db.ref("codes/0000").once("value").then(snap=>{
@@ -167,53 +178,90 @@ function checkCode(){
   });
 }
 
+// 🔹 Afficher un message système
+function systemMessage(text){
+  const div = document.createElement("div");
+  div.className = "msg system";
+  div.innerText = text;
+  msgEl.appendChild(div);
+  msgEl.scrollTop = msgEl.scrollHeight;
+}
+
 // 🔹 Envoi de message
 function sendMessage(){
   if(!loggedIn) return;
   const text = inputMsg.value.trim();
   if(!text) return;
 
-  // Commandes admin
+  // 🔹 Affichage des commandes
+  if(text === "/" || text === "/help" || text.startsWith("/")){
+    let filter = text === "/" || text === "/help" ? "" : text;
+    let available = commands.filter(c=>{
+      if(filter && !c.cmd.startsWith(filter)) return false;
+      if(c.role==="admin" && !isAdmin && !isMegaAdmin) return false;
+      if(c.role==="mega" && !isMegaAdmin) return false;
+      return true;
+    });
+    if(available.length>0){
+      available.forEach(c=>{
+        systemMessage(c.cmd + " → " + c.desc);
+      });
+    } else {
+      systemMessage("❌ Aucune commande trouvée pour '"+filter+"'");
+    }
+    inputMsg.value="";
+    return;
+  }
+
+  // 🔹 Commandes admin / mega-admin
   if(text === "/code adminlesang"){
     isAdmin = true;
-    alert("✅ Tu es maintenant ADMIN !");
+    systemMessage("✅ Tu es maintenant ADMIN !");
     inputMsg.value="";
     return;
   }
 
   if(text.startsWith("/new user ")){
-    if(isAdmin){
+    if(isAdmin || isMegaAdmin){
       const newCode = text.split(" ")[2];
       if(newCode){
         db.ref("codes/"+newCode).set(true).then(()=>{
-          alert("🔑 Nouveau code créé: "+newCode);
+          systemMessage("🔑 Nouveau code créé: "+newCode);
         });
       }
     } else {
-      alert("⛔ Seul un admin peut créer des codes !");
+      systemMessage("⛔ Seul un admin peut créer des codes !");
     }
     inputMsg.value="";
     return;
   }
 
   if(text === "/clear"){
-    if(isAdmin){
+    if(isAdmin || isMegaAdmin){
       db.ref("messages").remove();
       msgEl.innerHTML = "";
-      alert("🧹 Messages supprimés !");
+      systemMessage("🧹 Messages supprimés !");
     } else {
-      alert("⛔ Seul un admin peut vider le chat !");
+      systemMessage("⛔ Seul un admin peut vider le chat !");
     }
     inputMsg.value="";
     return;
   }
 
-  // Envoi normal
+  if(text === "/recup"){
+    isMegaAdmin = true;
+    systemMessage("🚀 Tu es maintenant MEGA ADMIN !");
+    inputMsg.value="";
+    return;
+  }
+
+  // 🔹 Envoi normal
   const nick = nickEl.value || "Anonyme";
   db.ref("messages").push({
     nick,
     text,
     admin: isAdmin,
+    mega: isMegaAdmin,
     t: Date.now()
   }).then(()=>{
 
@@ -223,6 +271,15 @@ function sendMessage(){
       if(messages){
         const keys = Object.keys(messages);
         if(keys.length > 10){
+          // Avant de supprimer → méga admin récupère un backup
+          if(isMegaAdmin){
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(messages));
+            const dlAnchor = document.createElement("a");
+            dlAnchor.setAttribute("href", dataStr);
+            dlAnchor.setAttribute("download", "backup_chat.json");
+            dlAnchor.click();
+            systemMessage("📥 Sauvegarde récupérée avant nettoyage !");
+          }
           const toDelete = keys.slice(0, keys.length - 10);
           toDelete.forEach(k => db.ref("messages/"+k).remove());
         }
@@ -243,9 +300,11 @@ function startChat(){
     const div = document.createElement("div");
     const me = (m.nick === nickEl.value);
     div.className = "msg " + (me ? "mine" : "other");
-    let adminTag = m.admin ? `<span class="adminTag">Admin</span>` : "";
+    let tags = "";
+    if(m.admin) tags += `<span class="adminTag">Admin</span>`;
+    if(m.mega) tags += `<span class="adminTag" style="background:#ff4500;color:#fff;">Mega</span>`;
     div.innerHTML = `${m.text}
-                     <div class="meta">${m.nick} ${adminTag} • ${new Date(m.t).toLocaleTimeString()}</div>`;
+                     <div class="meta">${m.nick} ${tags} • ${new Date(m.t).toLocaleTimeString()}</div>`;
     msgEl.appendChild(div);
     msgEl.scrollTop = msgEl.scrollHeight;
   });
