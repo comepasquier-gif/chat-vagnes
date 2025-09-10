@@ -1,314 +1,231 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Mini WhatsApp</title>
-<meta name="theme-color" content="#25D366">
-<style>
-body {
-  margin:0;
-  font-family: 'Arial', sans-serif;
-  background:#ece5dd;
-  height:100vh;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-}
-#login, #chat {
-  display:none;
-  flex-direction:column;
-  width:100%;
-  max-width:600px;
-  height:100%;
-  background:#fff;
-  border:1px solid #ccc;
-}
-#login {
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  gap:10px;
-}
-#login input, #login button {
-  padding:10px;
-  border:none;
-  border-radius:6px;
-}
-header {
-  padding:10px;
-  background:#075E54;
-  color:#fff;
-  font-weight:bold;
-  text-align:center;
-}
-main {
-  flex:1;
-  overflow:auto;
-  padding:10px;
-  background:#e5ddd5;
-  display:flex;
-  flex-direction:column;
-}
-footer {
-  display:flex;
-  gap:5px;
-  padding:8px;
-  background:#f0f0f0;
-}
-input, button {
-  padding:8px;
-  border-radius:20px;
-  border:none;
-}
-input { flex:1; padding-left:15px;}
-button {
-  background:#25D366;
-  color:#fff;
-  cursor:pointer;
-}
-.msg{
-  padding:10px 14px;
-  border-radius:18px;
-  margin:6px 0;
-  max-width:70%;
-  font-size:14px;
-  position:relative;
-}
-.mine{background:#dcf8c6; align-self:flex-end;}
-.other{background:#fff; align-self:flex-start;}
-.system{background:#ffeeba; align-self:center; font-size:12px;}
-.meta{font-size:11px;color:#555;margin-top:3px;text-align:right;}
-.adminTag {
-  background:#FFD700;
-  color:#000;
-  padding:2px 6px;
-  border-radius:8px;
-  font-size:10px;
-  margin-left:5px;
-}
-</style>
+  <meta charset="UTF-8">
+  <title>MiniChat SuperAdmin</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0; padding: 0;
+      display: flex; flex-direction: column;
+      height: 100vh;
+      background: #ece5dd;
+    }
+    header {
+      background: #075e54; color: white;
+      padding: 10px; text-align: center;
+    }
+    #messages {
+      flex: 1; overflow-y: auto; padding: 10px;
+      display: flex; flex-direction: column;
+    }
+    .msg {
+      padding: 8px 12px; margin: 5px;
+      border-radius: 10px; max-width: 70%;
+    }
+    .mine { background: #dcf8c6; align-self: flex-end; }
+    .other { background: #fff; align-self: flex-start; }
+    .system { background: #ffd; font-style: italic; text-align: center; }
+    #controls {
+      display: flex; padding: 10px; background: #f0f0f0;
+    }
+    #controls input { flex: 1; padding: 8px; }
+    #controls button { padding: 8px; margin-left: 5px; }
+    #login {
+      position: absolute; top:0; left:0; right:0; bottom:0;
+      background: rgba(0,0,0,0.8);
+      color: white; display: flex;
+      align-items: center; justify-content: center;
+      flex-direction: column;
+    }
+    #login input { margin: 5px; padding: 8px; }
+  </style>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 </head>
 <body>
-
-<!-- 🔹 Login -->
-<div id="login">
-  <div style="text-align:center">
-    <h2>🔒 Connexion</h2>
-    <p>Entre ton code d'accès :</p>
-    <input id="codeInput" type="text" placeholder="Code">
-    <button onclick="checkCode()">Entrer</button>
-    <p id="loginError" style="color:red;"></p>
+  <header>💬 MiniChat avec Super-Admin</header>
+  <div id="messages"></div>
+  <div id="controls">
+    <input id="inputMsg" placeholder="Écrire un message..." />
+    <button onclick="sendMessage()">Envoyer</button>
   </div>
-</div>
 
-<!-- 🔹 Chat -->
-<div id="chat">
-  <header>💬 Mini WhatsApp</header>
-  <main id="messages"></main>
-  <footer>
-    <input id="nick" type="text" placeholder="Pseudo" value="User">
-    <input id="inputMsg" type="text" placeholder="Ton message...">
-    <button id="sendBtn">➤</button>
-  </footer>
-</div>
-
-<!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+  <div id="login">
+    <h2>Connexion</h2>
+    <input id="nick" placeholder="Pseudo"/>
+    <input id="code" placeholder="Code d'accès"/>
+    <button onclick="login()">Se connecter</button>
+  </div>
 
 <script>
-// 🔹 Config Firebase
-const firebaseConfig = {
-  apiKey: "AIzaSyDP-H6X01nM42PGb1Wym7RCaWrsugrL5vA",
-  authDomain: "minichat-fc8fc.firebaseapp.com",
-  databaseURL: "https://minichat-fc8fc-default-rtdb.europe-west1.firebasedatabase.app/",
-  projectId: "minichat-fc8fc",
-  storageBucket: "minichat-fc8fc.firebasestorage.app",
-  messagingSenderId: "614755534085",
-  appId: "1:614755534085:web:3dd7799d11f5991c69236c"
-};
+  // 🔹 Config Firebase
+  const firebaseConfig = {
+    apiKey: "AIzaSyDP-H6X01nM42PGb1Wym7RCaWrsugrL5vA",
+    authDomain: "minichat-fc8fc.firebaseapp.com",
+    projectId: "minichat-fc8fc",
+    storageBucket: "minichat-fc8fc.firebasestorage.app",
+    messagingSenderId: "614755534085",
+    appId: "1:614755534085:web:3dd7799d11f5991c69236c",
+    databaseURL: "https://minichat-fc8fc-default-rtdb.europe-west1.firebasedatabase.app/"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+  const msgEl = document.getElementById("messages");
+  const inputMsg = document.getElementById("inputMsg");
+  const loginBox = document.getElementById("login");
+  const nickEl = document.getElementById("nick");
+  const codeEl = document.getElementById("code");
 
-const loginEl = document.getElementById("login");
-const chatEl = document.getElementById("chat");
-const codeInput = document.getElementById("codeInput");
-const loginError = document.getElementById("loginError");
+  let loggedIn = false;
+  let isAdmin = false;
+  let isSuperAdmin = false;
+  const SUPER_CODE = "supercode123"; // 🔑 Code secret super admin
 
-const msgEl = document.getElementById("messages");
-const nickEl = document.getElementById("nick");
-const inputMsg = document.getElementById("inputMsg");
-const sendBtn = document.getElementById("sendBtn");
+  // 🔹 Commandes disponibles
+  const commands = [
+    { cmd: "/code adminlesang", role: "user", desc: "Devenir admin" },
+    { cmd: "/new user <code>", role: "admin", desc: "Créer un nouveau code d'accès" },
+    { cmd: "/clear", role: "admin", desc: "Supprimer tous les messages" },
+    { cmd: "/super <code>", role: "user", desc: "Devenir super-admin (code secret)" },
+    { cmd: "/recup", role: "super", desc: "Récupérer et nettoyer la base" },
+    { cmd: "/reset", role: "super", desc: "Réinitialiser complètement la base" },
+    { cmd: "/help", role: "user", desc: "Afficher les commandes (alias /)" }
+  ];
 
-let isAdmin = false;
-let isMegaAdmin = false;
-let loggedIn = false;
-
-// 🔹 Liste des commandes
-const commands = [
-  { cmd: "/code adminlesang", role: "user", desc: "Devenir admin" },
-  { cmd: "/new user <code>", role: "admin", desc: "Créer un nouveau code d'accès" },
-  { cmd: "/clear", role: "admin", desc: "Supprimer tous les messages" },
-  { cmd: "/recup", role: "user", desc: "Devenir méga-admin" },
-  { cmd: "/help", role: "user", desc: "Afficher les commandes disponibles" }
-];
-
-// ✅ Ajouter un code de base "0000"
-db.ref("codes/0000").once("value").then(snap=>{
-  if(!snap.exists()){
-    db.ref("codes/0000").set(true);
-  }
-});
-
-// 🔹 Vérifier le code utilisateur
-function checkCode(){
-  const code = codeInput.value.trim();
-  if(!code) return;
-  db.ref("codes/" + code).once("value").then(snap=>{
-    if(snap.exists()){
-      loggedIn = true;
-      loginEl.style.display = "none";
-      chatEl.style.display = "flex";
-      startChat();
-    } else {
-      loginError.innerText = "⛔ Code invalide";
-    }
-  });
-}
-
-// 🔹 Afficher un message système
-function systemMessage(text){
-  const div = document.createElement("div");
-  div.className = "msg system";
-  div.innerText = text;
-  msgEl.appendChild(div);
-  msgEl.scrollTop = msgEl.scrollHeight;
-}
-
-// 🔹 Envoi de message
-function sendMessage(){
-  if(!loggedIn) return;
-  const text = inputMsg.value.trim();
-  if(!text) return;
-
-  // 🔹 Affichage des commandes
-  if(text === "/" || text === "/help" || text.startsWith("/")){
-    let filter = text === "/" || text === "/help" ? "" : text;
-    let available = commands.filter(c=>{
-      if(filter && !c.cmd.startsWith(filter)) return false;
-      if(c.role==="admin" && !isAdmin && !isMegaAdmin) return false;
-      if(c.role==="mega" && !isMegaAdmin) return false;
-      return true;
-    });
-    if(available.length>0){
-      available.forEach(c=>{
-        systemMessage(c.cmd + " → " + c.desc);
-      });
-    } else {
-      systemMessage("❌ Aucune commande trouvée pour '"+filter+"'");
-    }
-    inputMsg.value="";
-    return;
+  function systemMessage(txt){
+    let d=document.createElement("div");
+    d.className="msg system";
+    d.innerText=txt;
+    msgEl.appendChild(d);
+    msgEl.scrollTop=msgEl.scrollHeight;
   }
 
-  // 🔹 Commandes admin / mega-admin
-  if(text === "/code adminlesang"){
-    isAdmin = true;
-    systemMessage("✅ Tu es maintenant ADMIN !");
-    inputMsg.value="";
-    return;
-  }
-
-  if(text.startsWith("/new user ")){
-    if(isAdmin || isMegaAdmin){
-      const newCode = text.split(" ")[2];
-      if(newCode){
-        db.ref("codes/"+newCode).set(true).then(()=>{
-          systemMessage("🔑 Nouveau code créé: "+newCode);
-        });
+  function login(){
+    const nick=nickEl.value.trim();
+    const code=codeEl.value.trim();
+    if(!nick || !code) return alert("Pseudo + code requis !");
+    db.ref("codes/"+code).once("value").then(snap=>{
+      if(snap.exists() || code==="0000"){
+        loggedIn=true;
+        loginBox.style.display="none";
+        listenMessages();
+      } else {
+        alert("Code invalide !");
       }
-    } else {
-      systemMessage("⛔ Seul un admin peut créer des codes !");
+    });
+  }
+
+  function sendMessage(){
+    if(!loggedIn) return;
+    const text=inputMsg.value.trim();
+    if(!text) return;
+
+    // --- Commandes ---
+    if(text === "/code adminlesang"){
+      isAdmin=true;
+      systemMessage("✅ Tu es maintenant ADMIN !");
+      inputMsg.value=""; return;
     }
-    inputMsg.value="";
-    return;
-  }
 
-  if(text === "/clear"){
-    if(isAdmin || isMegaAdmin){
-      db.ref("messages").remove();
-      msgEl.innerHTML = "";
-      systemMessage("🧹 Messages supprimés !");
-    } else {
-      systemMessage("⛔ Seul un admin peut vider le chat !");
-    }
-    inputMsg.value="";
-    return;
-  }
-
-  if(text === "/recup"){
-    isMegaAdmin = true;
-    systemMessage("🚀 Tu es maintenant MEGA ADMIN !");
-    inputMsg.value="";
-    return;
-  }
-
-  // 🔹 Envoi normal
-  const nick = nickEl.value || "Anonyme";
-  db.ref("messages").push({
-    nick,
-    text,
-    admin: isAdmin,
-    mega: isMegaAdmin,
-    t: Date.now()
-  }).then(()=>{
-
-    // ✅ Garder seulement les 10 derniers
-    db.ref("messages").once("value").then(snap=>{
-      const messages = snap.val();
-      if(messages){
-        const keys = Object.keys(messages);
-        if(keys.length > 10){
-          // Avant de supprimer → méga admin récupère un backup
-          if(isMegaAdmin){
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(messages));
-            const dlAnchor = document.createElement("a");
-            dlAnchor.setAttribute("href", dataStr);
-            dlAnchor.setAttribute("download", "backup_chat.json");
-            dlAnchor.click();
-            systemMessage("📥 Sauvegarde récupérée avant nettoyage !");
-          }
-          const toDelete = keys.slice(0, keys.length - 10);
-          toDelete.forEach(k => db.ref("messages/"+k).remove());
+    if(text.startsWith("/new user ")){
+      if(isAdmin || isSuperAdmin){
+        const newCode = text.split(" ")[2];
+        if(newCode){
+          db.ref("codes/"+newCode).set(true).then(()=>{
+            systemMessage("🔑 Nouveau code créé: "+newCode);
+          });
         }
+      } else systemMessage("⛔ Seul un admin peut créer des codes !");
+      inputMsg.value=""; return;
+    }
+
+    if(text === "/clear"){
+      if(isAdmin || isSuperAdmin){
+        db.ref("messages").remove();
+        msgEl.innerHTML="";
+        systemMessage("🧹 Messages supprimés !");
+      } else systemMessage("⛔ Seul un admin peut vider le chat !");
+      inputMsg.value=""; return;
+    }
+
+    if(text.startsWith("/super ")){
+      const code=text.split(" ")[1];
+      if(code===SUPER_CODE){
+        isSuperAdmin=true;
+        isAdmin=true;
+        systemMessage("👑 Tu es maintenant SUPER ADMIN !");
+      } else {
+        systemMessage("⛔ Code super-admin incorrect !");
       }
-    });
+      inputMsg.value=""; return;
+    }
 
+    if(text === "/recup"){
+      if(isSuperAdmin){
+        db.ref("messages").once("value").then(snap=>{
+          const messages=snap.val();
+          if(messages){
+            const dataStr="data:text/json;charset=utf-8,"+encodeURIComponent(JSON.stringify(messages));
+            const dl=document.createElement("a");
+            dl.setAttribute("href",dataStr);
+            dl.setAttribute("download","backup_chat.json");
+            dl.click();
+            systemMessage("📥 Sauvegarde téléchargée !");
+          }
+          // puis nettoyage
+          db.ref("messages").remove();
+          msgEl.innerHTML="";
+          systemMessage("🧹 Base nettoyée (sauf sauvegarde téléchargée).");
+        });
+      } else systemMessage("⛔ Seul le super-admin peut utiliser /recup !");
+      inputMsg.value=""; return;
+    }
+
+    if(text === "/reset"){
+      if(isSuperAdmin){
+        db.ref("messages").remove().then(()=>{
+          msgEl.innerHTML="";
+          systemMessage("⚡ Reset complet effectué par le SUPER ADMIN !");
+        });
+      } else systemMessage("⛔ Seul le super-admin peut reset !");
+      inputMsg.value=""; return;
+    }
+
+    // 🔹 Aide
+    if(text==="/" || text==="/help" || text.startsWith("/")){
+      let filter=(text==="/"||text==="/help")?"":text;
+      let available=commands.filter(c=>{
+        if(filter && !c.cmd.startsWith(filter)) return false;
+        if(c.role==="admin" && !isAdmin && !isSuperAdmin) return false;
+        if(c.role==="super" && !isSuperAdmin) return false;
+        return true;
+      });
+      if(available.length>0){
+        available.forEach(c=>systemMessage(c.cmd+" → "+c.desc));
+      } else {
+        systemMessage("❌ Aucune commande trouvée pour '"+filter+"'");
+      }
+      inputMsg.value=""; return;
+    }
+
+    // --- Envoi normal ---
+    const nick=nickEl.value||"Anonyme";
+    db.ref("messages").push({nick,text,t:Date.now()});
     inputMsg.value="";
-  });
-}
+  }
 
-sendBtn.onclick = sendMessage;
-inputMsg.addEventListener("keydown", e => { if(e.key==="Enter") sendMessage() });
-
-// 🔹 Lecture des messages
-function startChat(){
-  db.ref("messages").on("child_added", snap => {
-    const m = snap.val();
-    const div = document.createElement("div");
-    const me = (m.nick === nickEl.value);
-    div.className = "msg " + (me ? "mine" : "other");
-    let tags = "";
-    if(m.admin) tags += `<span class="adminTag">Admin</span>`;
-    if(m.mega) tags += `<span class="adminTag" style="background:#ff4500;color:#fff;">Mega</span>`;
-    div.innerHTML = `${m.text}
-                     <div class="meta">${m.nick} ${tags} • ${new Date(m.t).toLocaleTimeString()}</div>`;
-    msgEl.appendChild(div);
-    msgEl.scrollTop = msgEl.scrollHeight;
-  });
-}
+  function listenMessages(){
+    db.ref("messages").on("child_added", snap=>{
+      const m=snap.val();
+      let d=document.createElement("div");
+      d.className="msg "+(m.nick===nickEl.value?"mine":"other");
+      d.innerText=m.nick+": "+m.text;
+      msgEl.appendChild(d);
+      msgEl.scrollTop=msgEl.scrollHeight;
+    });
+  }
 </script>
 </body>
 </html>
