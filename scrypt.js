@@ -54,22 +54,32 @@ function systemMessage(txt){
   msgEl.appendChild(d);
   msgEl.scrollTop=msgEl.scrollHeight;
 }
-
-// 🔹 Login
 function login(){
-  const nick=nickEl.value.trim();
-  const code=codeEl.value.trim();
-  if(!nick || !code) return alert("Pseudo + code requis !");
+  const nick = nickEl.value.trim();
+  const code = codeEl.value.trim();
+
+  if(!nick || !code){
+    alert("Pseudo + code requis !");
+    return;
+  }
+
   db.ref("codes/"+code).once("value").then(snap=>{
+    console.log("Valeur du code dans Firebase:", snap.val()); // DEBUG
+
     if(snap.exists() || code==="0000"){
-      loggedIn=true;
+      loggedIn = true;
       loginBox.style.display="none";
       listenMessages();
+      systemMessage("✅ Connecté avec le code : " + code);
     } else {
-      alert("Code invalide !");
+      alert("❌ Code invalide !");
     }
+  }).catch(err=>{
+    console.error("Erreur Firebase:", err);
+    alert("⚠️ Problème de connexion à Firebase");
   });
 }
+
 
 // 🔹 Auto-complétion
 inputMsg.addEventListener("input", ()=>{
