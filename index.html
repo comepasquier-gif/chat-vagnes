@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>MiniChat V.1 test</title>
+  <title>Ultimate Chattemp</title>
   <link rel="stylesheet" href="style.css">
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
@@ -16,13 +16,15 @@
   </div>
 
   <div id="chat" style="display:none;">
-    <header>💬 Nouveau Chat</header>
+    <header>💬 Ultimate Chat</header>
     <div id="messages"></div>
     <div id="controls">
       <input id="inputMsg" placeholder="Écrire un message..." autocomplete="off"/>
       <button onclick="sendMessage()">Envoyer</button>
     </div>
   </div>
+
+  <div id="suggestions"></div>
 
   <script src="app.js"></script>
 </body>
