@@ -17,8 +17,7 @@ header {
 .msg {
   padding:8px 12px;
   margin:5px; border-radius:8px;
-  max-width:70%;
-  word-wrap:break-word;
+  max-width:70%; word-wrap:break-word;
 }
 .mine { background:#dcf8c6; align-self:flex-end; }
 .other { background:#fff; align-self:flex-start; }
@@ -35,4 +34,16 @@ header {
 }
 #login input {
   margin:5px; padding:8px; width:200px;
+}
+#suggestions {
+  position: absolute; bottom: 60px; left: 10px;
+  background: white; border: 1px solid #ccc;
+  border-radius: 5px; display: none;
+  max-height: 150px; overflow-y: auto;
+}
+#suggestions div {
+  padding: 5px; cursor: pointer;
+}
+#suggestions div:hover {
+  background: #ddd;
 }
