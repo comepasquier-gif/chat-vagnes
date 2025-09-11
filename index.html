@@ -2,29 +2,27 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>MiniChat Ultime</title>
+  <title>MiniChat V.1 test</title>
   <link rel="stylesheet" href="style.css">
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 </head>
 <body>
-  <header>💬 MiniChat Ultime</header>
-
-  <div id="messages"></div>
-
-  <div id="controls">
-    <input id="inputMsg" placeholder="Écrire un message..." autocomplete="off" />
-    <button onclick="sendMessage()">Envoyer</button>
-  </div>
-
   <div id="login">
-    <h2>Connexion</h2>
-    <input id="nick" placeholder="Pseudo"/>
-    <input id="code" placeholder="Code d'accès"/>
+    <h2>🔑 Connexion</h2>
+    <input id="nick" placeholder="Pseudo" />
+    <input id="code" placeholder="Code d'accès" />
     <button onclick="login()">Se connecter</button>
   </div>
 
-  <div id="suggestions"></div>
+  <div id="chat" style="display:none;">
+    <header>💬 Nouveau Chat</header>
+    <div id="messages"></div>
+    <div id="controls">
+      <input id="inputMsg" placeholder="Écrire un message..." autocomplete="off"/>
+      <button onclick="sendMessage()">Envoyer</button>
+    </div>
+  </div>
 
   <script src="app.js"></script>
 </body>
